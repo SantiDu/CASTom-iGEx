@@ -6,30 +6,30 @@ Decision-tree DAG for `Software/model_prediction` to help choose the correct scr
 
 ```mermaid
 flowchart TD
-    A([Start: Inputs ready<br/>geno + cov + pheno + phenoAnn]) --> B{Genotype harmonized<br/>with training reference?}
+    A([Start inputs ready<br/>geno cov pheno phenoAnn]) --> B{Genotype harmonized<br/>with training reference}
 
     B -->|Yes| C[PriLer_predictGeneExp_run.R<br/>Predict gene expression]
     B -->|No / partial overlap| D[PriLer_predictGeneExp_smallerVariantSet_run.R<br/>Predict with intersected variants]
 
-    C --> E{Sample size <= 10,000?}
+    C --> E{Sample size LE 10000}
     D --> E
 
     %% Small dataset branch
-    E -->|Yes: Small dataset| S1[Tscore_PathScore_diff_run.R<br/>Compute T-scores (+ Reactome/GO optional)]
+    E -->|Yes small dataset| S1[Tscore_PathScore_diff_run.R<br/>Compute T scores and optional pathway scores]
     S1 --> S1b{Need custom pathway DB?}
     S1b -->|Yes| S2[pathScore_customGeneList_run.R]
-    S1b -->|No| S3[pheno_association_smallData_run.R<br/>Association: T-score + pathway]
+    S1b -->|No| S3[pheno_association_smallData_run.R<br/>Association T score and pathway]
     S2 --> S4[pheno_association_smallData_customPath_run.R<br/>Association: custom pathways]
     S3 --> S5{Multiple cohorts?}
     S4 --> S5
     S5 -->|No| Z1([Final small-data association output])
-    S5 -->|Yes, standard pathways| S6[pheno_association_metaAnalysis_run.R<br/>(or _noPathScore_)]
-    S5 -->|Yes, custom pathways| S7[pheno_association_customPath_metaAnalysis_run.R]
+    S5 -->|Yes standard pathways| S6[pheno_association_metaAnalysis_run.R<br/>or pheno_association_metaAnalysis_noPathScore_run.R]
+    S5 -->|Yes custom pathways| S7[pheno_association_customPath_metaAnalysis_run.R]
     S6 --> Z1
     S7 --> Z1
 
     %% Large dataset branch
-    E -->|No: Large dataset| L0[Combine_filteredGeneExpr.sh<br/>Merge/filter split predicted expression]
+    E -->|No large dataset| L0[Combine_filteredGeneExpr.sh<br/>Merge and filter split predicted expression]
     L0 --> L1[Tscore_splitGenes_run.R<br/>Split-gene T-score computation]
     L1 --> L2{Pathway type}
     L2 -->|Reactome/GO| L3[PathwayScores_splitGenes_run.R]
