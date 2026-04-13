@@ -15,36 +15,37 @@ flowchart TD
     D --> E
 
     %% Small dataset branch
-    E -->|Yes small dataset| S1[Tscore_PathScore_diff_run.R<br/>Compute T scores and optional pathway scores]
-    S1 --> S1b{Need custom pathway DB?}
-    S1b -->|Yes| S2[pathScore_customGeneList_run.R]
-    S1b -->|No| S3[pheno_association_smallData_run.R<br/>Association T score and pathway]
-    S2 --> S4[pheno_association_smallData_customPath_run.R<br/>Association: custom pathways]
-    S3 --> S5{Multiple cohorts?}
-    S4 --> S5
-    S5 -->|No| Z1([Final small-data association output])
-    S5 -->|Yes standard pathways| S6[pheno_association_metaAnalysis_run.R<br/>or pheno_association_metaAnalysis_noPathScore_run.R]
-    S5 -->|Yes custom pathways| S7[pheno_association_customPath_metaAnalysis_run.R]
+    E -->|Yes small dataset| S1[Tscore_PathScore_diff_run.R<br/>Compute T scores and optional Reactome GO scores]
+    S1 --> S2[pheno_association_smallData_run.R<br/>Run T score association always<br/>and Reactome GO if available]
+    S2 --> S2b{Need custom pathway DB}
+    S2b -->|No| S4{Multiple cohorts}
+    S2b -->|Yes| S3[pathScore_customGeneList_run.R<br/>Build custom pathway scores from T scores]
+    S3 --> S3b[pheno_association_smallData_customPath_run.R<br/>Custom pathways needs prior T score association]
+    S3b --> S4
+    S4 -->|No| Z1([Final small data association output])
+    S4 -->|Yes standard pathways| S5[pheno_association_metaAnalysis_run.R<br/>or pheno_association_metaAnalysis_noPathScore_run.R]
+    S4 -->|Yes custom pathways| S6[pheno_association_customPath_metaAnalysis_run.R]
+    S5 --> Z1
     S6 --> Z1
-    S7 --> Z1
 
     %% Large dataset branch
     E -->|No large dataset| L0[Combine_filteredGeneExpr.sh<br/>Merge and filter split predicted expression]
-    L0 --> L1[Tscore_splitGenes_run.R<br/>Split-gene T-score computation]
-    L1 --> L2{Pathway type}
-    L2 -->|Reactome/GO| L3[PathwayScores_splitGenes_run.R]
+    L0 --> L1[Tscore_splitGenes_run.R<br/>Split gene T score computation]
+    L1 --> L2{Pathway scores to compute}
+    L2 -->|Reactome GO default| L3[PathwayScores_splitGenes_run.R]
     L2 -->|Custom gene sets| L3b[PathwayScores_splitGenes_customGeneList_run.R]
-
-    L3 --> L4[pheno_association_prepare_largeData_run.R<br/>Prepare split inputs/info]
+    L2 -->|None| L4
+    L3 --> L4[pheno_association_prepare_largeData_run.R<br/>Prepare t score and pathway inputs]
     L3b --> L4
-    L4 --> L5[pheno_association_tscore_largeData_run.R<br/>Test gene T-scores by split]
-    L4 --> L6[pheno_association_pathscore_largeData_run.R<br/>Test pathway scores by split]
-    L5 --> L7{Custom pathway combine?}
-    L6 --> L7
-    L7 -->|No| L8[pheno_association_combine_largeData_run.R]
-    L7 -->|Yes| L9[pheno_association_combine_largeData_customPath_run.R]
-    L8 --> Z2([Final large-data association output])
-    L9 --> Z2
+    L4 --> L5[pheno_association_tscore_largeData_run.R<br/>Run T score association always]
+    L5 --> L6{Pathway association available}
+    L6 -->|No| L9([Final large data t score only output])
+    L6 -->|Reactome GO| L7[pheno_association_pathscore_largeData_run.R<br/>for Reactome GO splits]
+    L6 -->|Custom pathways| L7b[pheno_association_pathscore_largeData_run.R<br/>for custom pathway splits]
+    L7 --> L8[pheno_association_combine_largeData_run.R]
+    L7b --> L8b[pheno_association_combine_largeData_customPath_run.R]
+    L8 --> Z2([Final large data association output])
+    L8b --> Z2
 ```
 
 ## Quick run checklist
@@ -54,9 +55,11 @@ flowchart TD
   - harmonized variants -> `PriLer_predictGeneExp_run.R`
   - non-harmonized or intersected variants -> `PriLer_predictGeneExp_smallerVariantSet_run.R`
 - Choose branch by cohort size:
-  - small (`<= 10,000`) -> direct T-score/pathway + association scripts
-  - large (`> 10,000`) -> split/prepare/test/combine scripts
-- If using custom pathways, switch to the `*_customPath*` or `*_customGeneList*` scripts at the marked DAG nodes.
+  - small (`<= 10,000`) -> compute T scores then run `pheno_association_smallData_run.R` first
+  - large (`> 10,000`) -> always run split T score association first, then optional pathway association
+- Reactome and GO are the default pathway set when provided; custom pathways are optional and additive.
+- If using custom pathways in small-data mode, run `pheno_association_smallData_customPath_run.R` only after T-score association is complete.
+- If using custom pathways in large-data mode, use the `*_customPath*` or `*_customGeneList*` scripts at the marked DAG nodes.
 - If multiple cohorts are analyzed in small-data mode, run the matching meta-analysis script.
 
 ## Main outputs at a glance
