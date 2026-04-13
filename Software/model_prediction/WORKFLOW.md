@@ -19,15 +19,10 @@ flowchart TD
     E -->|Yes small dataset| S1[Tscore_PathScore_diff_run.R<br/>Compute T scores and optional Reactome GO scores]
     S1 --> S2[pheno_association_smallData_run.R<br/>Run T score association always<br/>and Reactome GO if available]
     S2 --> S2b{Need custom pathway DB}
-    S2b -->|No| S4{Multiple cohorts}
+    S2b -->|No| S4([Final small data association output])
     S2b -->|Yes| S3[pathScore_customGeneList_run.R<br/>Build custom pathway scores from T scores]
     S3 --> S3b[pheno_association_smallData_customPath_run.R<br/>Custom pathways needs prior T score association]
     S3b --> S4
-    S4 -->|No| Z1([Final small data association output])
-    S4 -->|Yes standard pathways| S5[pheno_association_metaAnalysis_run.R<br/>or pheno_association_metaAnalysis_noPathScore_run.R]
-    S4 -->|Yes custom pathways| S6[pheno_association_customPath_metaAnalysis_run.R]
-    S5 --> Z1
-    S6 --> Z1
 
     %% Large dataset branch
     E -->|No large dataset| L0[Combine_filteredGeneExpr.sh<br/>Merge and filter split predicted expression]
@@ -47,7 +42,10 @@ flowchart TD
     L7b --> L8b[pheno_association_combine_largeData_customPath_run.R]
     L8 --> Z2([Final large data association output])
     L8b --> Z2
-    Z2 --> M1{Need cohort meta analysis}
+    
+    %% Shared optional meta analysis section
+    S4 --> M1{Need cohort meta analysis}
+    Z2 --> M1
     M1 -->|No| M0([Stop])
     M1 -->|Yes T score plus Reactome GO| M2[pheno_association_metaAnalysis_run.R]
     M1 -->|Yes T score only| M3[pheno_association_metaAnalysis_noPathScore_run.R]
