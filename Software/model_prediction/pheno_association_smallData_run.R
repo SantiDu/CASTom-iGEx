@@ -463,7 +463,7 @@ for(n in 1:length(phenoDat_file)){
   ##################################
   #### pathScore GO assocaition ####
   ##################################
-  if (!is.null(reactome_file)) {
+  if (!is.null(GOterms_file)) {
     pathScore_GO_association <- cbind(pathScore_GO[id_samples, ], tot_var)
     colnames(pathScore_GO_association)[1:length(pathScoreID_GO)] <- paste0('X',1:length(pathScoreID_GO))
 
